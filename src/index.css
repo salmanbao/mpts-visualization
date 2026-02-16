@@ -430,6 +430,203 @@ body {
   font-size: 0.76rem;
 }
 
+.db-causality-note {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  color: #c8d6f2;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(95, 133, 77, 0.18);
+}
+
+.key-progress {
+  padding: 0.45rem 0.55rem 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.key-progress-title {
+  display: block;
+  font-size: 0.74rem;
+  color: #d3dcf3;
+  margin-bottom: 0.28rem;
+}
+
+.key-progress-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+}
+
+.key-nibble {
+  width: 16px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  font-size: 0.66rem;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.key-nibble-consumed {
+  background: rgba(98, 160, 102, 0.43);
+  color: #edfff3;
+}
+
+.key-nibble-remaining {
+  background: rgba(255, 255, 255, 0.06);
+  color: #c9d5ef;
+}
+
+.key-nibble-active {
+  border-color: rgba(255, 197, 114, 0.95);
+  box-shadow: 0 0 0 1px rgba(255, 197, 114, 0.35) inset;
+}
+
+.trie-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  align-items: center;
+  padding: 0.32rem 0.55rem;
+  font-size: 0.72rem;
+  color: #d5e1fb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-branch {
+  background: #234854;
+}
+
+.legend-extension {
+  background: #51412f;
+}
+
+.legend-leaf {
+  background: #4a2946;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 12px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+  margin-right: 0.25rem;
+}
+
+.legend-embedded {
+  border-top-color: #7bc8d8;
+}
+
+.legend-hash {
+  border-top-color: #f8b75c;
+}
+
+.legend-cell {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 0.25rem;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-cell-used {
+  background: rgba(89, 179, 123, 0.75);
+}
+
+.commitment-card {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  background: rgba(19, 31, 44, 0.8);
+  padding: 0.55rem 0.7rem;
+}
+
+.commitment-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.commitment-grid {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.commitment-grid code {
+  font-size: 0.73rem;
+}
+
+.commitment-note {
+  margin: 0.4rem 0 0;
+  color: #c5d6f0;
+  font-size: 0.78rem;
+}
+
+.lesson-rail {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(17, 30, 45, 0.82);
+  padding: 0.5rem 0.65rem;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1.6fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.lesson-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+.lesson-item strong {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #d6e3ff;
+}
+
+.lesson-item span {
+  font-size: 0.78rem;
+  color: #e6efff;
+}
+
+.lesson-impact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.26rem;
+}
+
+.lesson-chip {
+  font-size: 0.68rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.42rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: #d3def7;
+}
+
+.lesson-chip-on {
+  border-color: rgba(152, 232, 152, 0.8);
+  background: rgba(86, 146, 86, 0.34);
+  color: #eefef0;
+}
+
 .event-log-drawer {
   display: flex;
   flex-direction: column;
@@ -621,6 +818,12 @@ body {
   padding: 0.55rem;
 }
 
+.details-tabs {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.45rem;
+}
+
 .event-details h4,
 .event-details h5 {
   margin: 0 0 0.35rem;
@@ -745,6 +948,10 @@ summary {
 
   .info-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .lesson-rail {
+    grid-template-columns: 1fr;
   }
 }
 

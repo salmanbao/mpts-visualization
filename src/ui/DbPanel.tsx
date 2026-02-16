@@ -9,6 +9,8 @@ interface DbPanelProps {
   revealKey?: string;
   dbAction?: 'GET' | 'PUT';
   referencedBy: Record<string, string[]>;
+  activeNodeId?: string;
+  learningMode: boolean;
   debugMode: boolean;
 }
 
@@ -38,12 +40,20 @@ export function DbPanel(props: DbPanelProps) {
     }
   }, [props.highlightedKey, props.revealKey]);
 
+  const activeRefSources = props.highlightedKey ? props.referencedBy[props.highlightedKey] ?? [] : [];
+  const referencedByActiveNode = props.activeNodeId ? activeRefSources.includes(props.activeNodeId) : false;
+
   return (
     <section className="panel">
       <div className="panel-head">
         <h3>KV Database (hash -&gt; RLP node)</h3>
         <span>{props.entries.length} hashed nodes</span>
       </div>
+      {props.learningMode && props.highlightedKey && (
+        <div className="db-causality-note">
+          Referenced by active node: {referencedByActiveNode ? 'yes' : activeRefSources.length > 0 ? 'indirectly' : 'not resolved'}
+        </div>
+      )}
       <input
         className="input db-search"
         placeholder="Search hash, node type, value hex"
