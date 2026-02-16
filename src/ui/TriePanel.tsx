@@ -8,6 +8,11 @@ interface TriePanelProps {
   changedNodeIds: string[];
   selectedNodeId?: string;
   currentStep?: SimulationStep;
+  keyNibbles: number[];
+  consumedCount: number;
+  activeNibbleIndex?: number;
+  learningMode: boolean;
+  playing: boolean;
   onSelectNode: (node: TrieGraphNode) => void;
   onSelectNodeId?: (nodeId: string) => void;
   debugMode: boolean;
