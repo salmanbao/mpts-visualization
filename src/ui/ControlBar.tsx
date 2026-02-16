@@ -12,6 +12,7 @@ interface ControlBarProps {
   canPrev: boolean;
   canNext: boolean;
   debugMode: boolean;
+  learningMode: boolean;
   useCache: boolean;
   indexedDbMode: boolean;
   accounts: GeneratedAccount[];
@@ -30,6 +31,7 @@ interface ControlBarProps {
   onPause: () => void;
   onSpeedChange: (value: number) => void;
   onDebugModeChange: (value: boolean) => void;
+  onLearningModeChange: (value: boolean) => void;
   onUseCacheChange: (value: boolean) => void;
   onIndexedDbModeChange: (value: boolean) => void;
   onReset: () => void;
@@ -179,6 +181,15 @@ export function ControlBar(props: ControlBarProps) {
           onChange={(event) => props.onDebugModeChange(event.target.checked)}
         />
         Debug mode
+      </label>
+
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={props.learningMode}
+          onChange={(event) => props.onLearningModeChange(event.target.checked)}
+        />
+        Learning mode
       </label>
 
       <button type="button" className="button button-danger" onClick={props.onReset}>

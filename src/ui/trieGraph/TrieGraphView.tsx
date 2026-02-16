@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TrieGraph, TrieGraphNode } from '../../mpt/types';
 import type { SimulationStep } from '../../mpt/simulator';
+import { KeyProgressRibbon } from '../components/KeyProgressRibbon';
 import { buildRenderGraph, shortIdentifier } from './buildGraph';
 import { computeDagreLayout } from './layout';
 
@@ -10,6 +11,11 @@ interface TrieGraphViewProps {
   changedNodeIds: string[];
   selectedNodeId?: string;
   currentStep?: SimulationStep;
+  keyNibbles: number[];
+  consumedCount: number;
+  activeNibbleIndex?: number;
+  learningMode: boolean;
+  playing: boolean;
   onSelectNode: (node: TrieGraphNode) => void;
   onSelectNodeId?: (nodeId: string) => void;
   debugMode: boolean;
@@ -72,10 +78,11 @@ export function TrieGraphView(props: TrieGraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
   const [view, setView] = useState<ViewState>({ zoom: 1, offsetX: 40, offsetY: 24 });
+  const [focusLock, setFocusLock] = useState(false);
 
   const renderGraph = useMemo(() => buildRenderGraph(props.graph), [props.graph]);
   const layout = useMemo(() => computeDagreLayout(renderGraph), [renderGraph]);
-  const branchDecision = useMemo(() => inferBranchDecision(props.currentStep), [props.currentStep]);
+  const fallbackDecision = useMemo(() => inferBranchDecision(props.currentStep), [props.currentStep]);
 
   const fitView = useCallback(() => {
     const root = containerRef.current;
@@ -93,9 +100,32 @@ export function TrieGraphView(props: TrieGraphViewProps) {
     setView({ zoom, offsetX, offsetY });
   }, [layout.bounds.height, layout.bounds.minX, layout.bounds.minY, layout.bounds.width, renderGraph.nodes.length]);
 
+  const centerOnNode = useCallback((nodeId: string): void => {
+    const root = containerRef.current;
+    const position = layout.positions[nodeId];
+    if (!root || !position) {
+      return;
+    }
+    const rect = root.getBoundingClientRect();
+    const nodeCenterX = position.x + position.width / 2;
+    const nodeCenterY = position.y + position.height / 2;
+    setView((prev) => ({
+      ...prev,
+      offsetX: rect.width / 2 - nodeCenterX * prev.zoom,
+      offsetY: rect.height / 2 - nodeCenterY * prev.zoom,
+    }));
+  }, [layout.positions]);
+
   useEffect(() => {
     fitView();
   }, [fitView, layout.signature]);
+
+  useEffect(() => {
+    if (!focusLock || !props.playing || !props.activeNodeId) {
+      return;
+    }
+    centerOnNode(props.activeNodeId);
+  }, [centerOnNode, focusLock, props.activeNodeId, props.playing]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>): void => {
     dragRef.current = { x: event.clientX, y: event.clientY, active: true };
@@ -168,9 +198,31 @@ export function TrieGraphView(props: TrieGraphViewProps) {
           <button type="button" className="mini-button" onClick={fitView}>
             Recenter
           </button>
+          <label className="toggle">
+            <input type="checkbox" checked={focusLock} onChange={(event) => setFocusLock(event.target.checked)} />
+            Focus lock
+          </label>
           <span className="trie-zoom-indicator">Zoom {(view.zoom * 100).toFixed(0)}%</span>
         </div>
       </div>
+
+      {props.learningMode && (
+        <>
+          <KeyProgressRibbon
+            fullKeyNibbles={props.keyNibbles}
+            consumedCount={props.consumedCount}
+            activeNibbleIndex={props.activeNibbleIndex}
+          />
+          <div className="trie-legend">
+            <span><i className="legend-swatch legend-branch" /> Branch</span>
+            <span><i className="legend-swatch legend-extension" /> Extension</span>
+            <span><i className="legend-swatch legend-leaf" /> Leaf</span>
+            <span><i className="legend-line legend-embedded" /> embedded edge</span>
+            <span><i className="legend-line legend-hash" /> hash-ref edge</span>
+            <span><i className="legend-cell legend-cell-used" /> used branch index</span>
+          </div>
+        </>
+      )}
 
       {positionedNodes.length === 0 ? (
         <div className="panel-empty">Build a trie first to visualize nodes.</div>
@@ -217,7 +269,10 @@ export function TrieGraphView(props: TrieGraphViewProps) {
                 const isChanged = changedSet.has(node.id);
                 const isSelected = props.selectedNodeId === node.id;
                 const showBranchGrid = node.source.type === 'branch' && !!node.branchMeta;
-                const decisionIndex = branchDecision?.nodeId === node.id ? branchDecision.index : undefined;
+                const branchDecision = fallbackDecision;
+                const decisionIndex =
+                  (branchDecision?.nodeId === node.id ? branchDecision.index : undefined) ??
+                  (props.activeNodeId === node.id ? props.activeNibbleIndex : undefined);
                 return (
                   <g
                     key={node.id}

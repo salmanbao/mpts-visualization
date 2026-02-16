@@ -1,30 +1,37 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { SimulationStep } from '../../mpt/simulator';
 import { formatStep, stepMatchesFilter, type EventLogFilter, type FormattedStep } from '../utils/stepFormat';
+import type { PedagogicalStep } from '../utils/stepPedagogy';
 import { StepDetails } from './StepDetails';
 
 interface EventLogPanelProps {
   steps: SimulationStep[];
+  pedSteps: PedagogicalStep[];
   stepIndex: number;
   onStepChange: (index: number) => void;
   debugMode: boolean;
+  learningMode: boolean;
   onRevealDbKey?: (key: string) => void;
   onFocusNode?: (nodeId: string) => void;
 }
 
 const LOG_HEIGHT = 232;
-const ROW_HEIGHT = 54;
+const ROW_HEIGHT = 56;
 const OVERSCAN = 8;
 const FILTERS: EventLogFilter[] = ['all', 'trie', 'db', 'key', 'root', 'cache'];
 
 interface EventRowProps {
   step: FormattedStep;
+  pedStep?: PedagogicalStep;
   isCurrent: boolean;
   top: number;
+  learningMode: boolean;
+  showInternals: boolean;
   onSelect: (index: number) => void;
 }
 
 const EventRow = memo(function EventRow(props: EventRowProps) {
+  const message = props.learningMode ? props.pedStep?.conciseText ?? props.step.message : props.step.message;
   return (
     <button
       type="button"
@@ -34,14 +41,16 @@ const EventRow = memo(function EventRow(props: EventRowProps) {
     >
       <span className="event-step-no">{props.step.index + 1}</span>
       <span className="event-badge">{props.step.badge}</span>
-      <span className="event-message">{props.step.message}</span>
-      <span className="event-chip-list">
-        {props.step.chips.slice(0, 5).map((chip, index) => (
-          <span key={`${chip.label}-${index}`} className="event-chip">
-            {chip.label}
-          </span>
-        ))}
-      </span>
+      <span className="event-message">{message}</span>
+      {(props.showInternals || !props.learningMode) && (
+        <span className="event-chip-list">
+          {props.step.chips.slice(0, 5).map((chip, index) => (
+            <span key={`${chip.label}-${index}`} className="event-chip">
+              {chip.label}
+            </span>
+          ))}
+        </span>
+      )}
     </button>
   );
 });
@@ -51,9 +60,14 @@ export function EventLogPanel(props: EventLogPanelProps) {
   const [filter, setFilter] = useState<EventLogFilter>('all');
   const [autoFollow, setAutoFollow] = useState(true);
   const [detailsOpen, setDetailsOpen] = useState(true);
+  const [showInternals, setShowInternals] = useState(!props.learningMode);
   const [scrollTop, setScrollTop] = useState(0);
   const [listHeight, setListHeight] = useState(LOG_HEIGHT);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setShowInternals(!props.learningMode);
+  }, [props.learningMode]);
 
   const formattedSteps = useMemo(() => props.steps.map((step, index) => formatStep(step, index)), [props.steps]);
   const filteredIndexes = useMemo(() => {
@@ -63,16 +77,19 @@ export function EventLogPanel(props: EventLogPanelProps) {
       if (!stepMatchesFilter(step, filter)) {
         continue;
       }
-      if (query && !step.searchable.includes(query)) {
+      const ped = props.pedSteps[step.index];
+      const searchable = `${step.searchable} ${ped?.whyText ?? ''} ${ped?.whatText ?? ''}`.toLowerCase();
+      if (query && !searchable.includes(query)) {
         continue;
       }
       out.push(step.index);
     }
     return out;
-  }, [filter, formattedSteps, search]);
+  }, [filter, formattedSteps, props.pedSteps, search]);
 
   const selectedStep = props.steps[props.stepIndex];
   const selectedFormatted = formattedSteps[props.stepIndex];
+  const selectedPed = props.pedSteps[props.stepIndex];
   const selectedVisibleIndex = filteredIndexes.indexOf(props.stepIndex);
   const totalHeight = filteredIndexes.length * ROW_HEIGHT;
 
@@ -168,6 +185,11 @@ export function EventLogPanel(props: EventLogPanelProps) {
             </button>
           ))}
         </div>
+        {props.learningMode && (
+          <button type="button" className="mini-button" onClick={() => setShowInternals((prev) => !prev)}>
+            {showInternals ? 'Hide internals' : 'Show internals'}
+          </button>
+        )}
         <label className="toggle event-autofollow">
           <input type="checkbox" checked={autoFollow} onChange={(event) => setAutoFollow(event.target.checked)} />
           Auto-follow
@@ -190,8 +212,11 @@ export function EventLogPanel(props: EventLogPanelProps) {
                   <EventRow
                     key={rawIndex}
                     step={step}
+                    pedStep={props.pedSteps[rawIndex]}
                     isCurrent={rawIndex === props.stepIndex}
                     top={logicalIndex * ROW_HEIGHT}
+                    learningMode={props.learningMode}
+                    showInternals={showInternals}
                     onSelect={handleStepSelect}
                   />
                 );
@@ -211,7 +236,9 @@ export function EventLogPanel(props: EventLogPanelProps) {
             <StepDetails
               step={selectedStep}
               formatted={selectedFormatted}
+              pedStep={selectedPed}
               debugMode={props.debugMode}
+              learningMode={props.learningMode}
               onRevealDbKey={props.onRevealDbKey}
               onFocusNode={props.onFocusNode}
             />
