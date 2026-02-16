@@ -8,7 +8,10 @@ import { ControlBar } from './ui/ControlBar';
 import { DbPanel } from './ui/DbPanel';
 import { InfoBar } from './ui/InfoBar';
 import { TriePanel } from './ui/TriePanel';
+import { CommitmentCard } from './ui/components/CommitmentCard';
 import { EventLogPanel } from './ui/components/EventLogPanel';
+import { LessonRail } from './ui/components/LessonRail';
+import { buildPedagogicalSteps } from './ui/utils/stepPedagogy';
 import { simulateBuild, simulateLookup, simulateUpdate, type SimulationMode, type SimulationStep } from './mpt/simulator';
 import './index.css';
 
@@ -37,6 +40,7 @@ export default function App() {
   const [speed, setSpeed] = useState(4);
 
   const [debugMode, setDebugMode] = useState(false);
+  const [learningMode, setLearningMode] = useState(true);
   const [useCache, setUseCache] = useState(true);
   const [indexedDbMode, setIndexedDbMode] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
@@ -50,6 +54,8 @@ export default function App() {
     () => buildTrieGraph(displayRootRef, InMemoryKvStore.fromEntries(displayEntries)),
     [displayEntries, displayRootRef],
   );
+  const pedSteps = useMemo(() => buildPedagogicalSteps(steps), [steps]);
+  const currentPedStep = steps.length === 0 ? undefined : pedSteps[Math.min(stepIndex, pedSteps.length - 1)];
   const rootDisplay = useMemo(() => describeRoot(displayRootRef), [displayRootRef]);
 
   const referencedBy = useMemo(() => {
@@ -99,6 +105,13 @@ export default function App() {
   }, [currentStep, graphNodeIds, stepIndex, steps]);
 
   const selectedNode = graph.nodes.find((node) => node.id === selectedNodeId);
+  const previousRootHex =
+    stepIndex > 0 && steps[stepIndex - 1] ? describeRoot(steps[stepIndex - 1].rootRef).commitmentHex : undefined;
+  const currentRootHex =
+    currentStep ? describeRoot(currentStep.rootRef).commitmentHex : describeRoot(rootRef).commitmentHex;
+  const keyRibbonNibbles = currentPedStep?.fullKeyNibbles ?? [];
+  const keyRibbonConsumed = currentPedStep?.consumedCount ?? 0;
+  const keyRibbonActiveNibble = currentPedStep?.activeNibbleIndex;
 
   useEffect(() => {
     if (steps.length === 0) {
@@ -234,6 +247,7 @@ export default function App() {
         canPrev={stepIndex > 0}
         canNext={steps.length > 0 && stepIndex < steps.length - 1}
         debugMode={debugMode}
+        learningMode={learningMode}
         useCache={useCache}
         indexedDbMode={indexedDbMode}
         accounts={accounts}
@@ -258,6 +272,7 @@ export default function App() {
         onPause={() => setPlaying(false)}
         onSpeedChange={setSpeed}
         onDebugModeChange={setDebugMode}
+        onLearningModeChange={setLearningMode}
         onUseCacheChange={setUseCache}
         onIndexedDbModeChange={setIndexedDbMode}
         onReset={handleReset}
@@ -278,6 +293,11 @@ export default function App() {
           changedNodeIds={currentStep?.changedNodeIds ?? []}
           selectedNodeId={selectedNodeId}
           currentStep={currentStep}
+          keyNibbles={keyRibbonNibbles}
+          consumedCount={keyRibbonConsumed}
+          activeNibbleIndex={keyRibbonActiveNibble}
+          learningMode={learningMode}
+          playing={playing}
           onSelectNode={(node) => setSelectedNodeId(node.id)}
           onSelectNodeId={setSelectedNodeId}
           debugMode={debugMode}
@@ -288,15 +308,30 @@ export default function App() {
           revealKey={manualDbRevealKey}
           dbAction={currentStep?.dbAction}
           referencedBy={referencedBy}
+          activeNodeId={effectiveActiveNodeId}
+          learningMode={learningMode}
           debugMode={debugMode}
         />
       </main>
 
+      {learningMode && (
+        <>
+          <CommitmentCard
+            previousRoot={previousRootHex}
+            currentRoot={currentRootHex}
+            changedNodes={currentStep?.changedNodeIds.length ?? 0}
+          />
+          <LessonRail pedStep={currentPedStep} stepIndex={stepIndex} totalSteps={steps.length} />
+        </>
+      )}
+
       <EventLogPanel
         steps={steps}
+        pedSteps={pedSteps}
         stepIndex={stepIndex}
         onStepChange={handleStepChange}
         debugMode={debugMode}
+        learningMode={learningMode}
         onRevealDbKey={(key) => setManualDbRevealKey(key)}
         onFocusNode={(nodeId) => setSelectedNodeId(nodeId)}
       />
