@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TrieGraph, TrieGraphNode } from '../../mpt/types';
-import { buildRenderGraph } from './buildGraph';
+import type { SimulationStep } from '../../mpt/simulator';
+import { buildRenderGraph, shortIdentifier } from './buildGraph';
 import { computeDagreLayout } from './layout';
 
 interface TrieGraphViewProps {
@@ -8,8 +9,15 @@ interface TrieGraphViewProps {
   activeNodeId?: string;
   changedNodeIds: string[];
   selectedNodeId?: string;
+  currentStep?: SimulationStep;
   onSelectNode: (node: TrieGraphNode) => void;
+  onSelectNodeId?: (nodeId: string) => void;
   debugMode: boolean;
+}
+
+interface BranchDecision {
+  nodeId?: string;
+  index: number;
 }
 
 const LABEL_MAX = 30;
@@ -32,6 +40,24 @@ function nodeFill(type: TrieGraphNode['type']): string {
   return '#4a2946';
 }
 
+function inferBranchDecision(step?: SimulationStep): BranchDecision | undefined {
+  if (!step) {
+    return undefined;
+  }
+  const message = step.log ?? '';
+  const match = message.match(/index\s+([0-9a-f])\b/i) ?? message.match(/@([0-9a-f])\b/i);
+  if (!match) {
+    return undefined;
+  }
+  if (step.activeNode?.type && step.activeNode.type !== 'branch' && !/branch/i.test(message)) {
+    return undefined;
+  }
+  return {
+    nodeId: step.activeNodeId,
+    index: Number.parseInt(match[1], 16),
+  };
+}
+
 interface ViewState {
   zoom: number;
   offsetX: number;
@@ -49,6 +75,7 @@ export function TrieGraphView(props: TrieGraphViewProps) {
 
   const renderGraph = useMemo(() => buildRenderGraph(props.graph), [props.graph]);
   const layout = useMemo(() => computeDagreLayout(renderGraph), [renderGraph]);
+  const branchDecision = useMemo(() => inferBranchDecision(props.currentStep), [props.currentStep]);
 
   const fitView = useCallback(() => {
     const root = containerRef.current;
@@ -189,6 +216,8 @@ export function TrieGraphView(props: TrieGraphViewProps) {
                 const isActive = props.activeNodeId === node.id;
                 const isChanged = changedSet.has(node.id);
                 const isSelected = props.selectedNodeId === node.id;
+                const showBranchGrid = node.source.type === 'branch' && !!node.branchMeta;
+                const decisionIndex = branchDecision?.nodeId === node.id ? branchDecision.index : undefined;
                 return (
                   <g
                     key={node.id}
@@ -212,17 +241,70 @@ export function TrieGraphView(props: TrieGraphViewProps) {
                     <text x={12} y={22} className="node-title">
                       {fitLabel(node.title)}
                     </text>
-                    <text x={12} y={43} className="node-subtitle">
+                    <text x={12} y={42} className="node-subtitle">
                       {fitLabel(node.summary, 34)}
                     </text>
-                    <text x={12} y={63} className="node-subtitle">
+                    <text x={12} y={62} className="node-subtitle">
                       {fitLabel(node.detail, 34)}
                     </text>
-                    <text x={12} y={84} className="node-subtitle">
-                      {node.meta}
-                    </text>
-                    {props.debugMode && (
+                    {showBranchGrid ? (
+                      <g transform="translate(12,72)">
+                        {node.branchMeta!.children.map((child) => {
+                          const col = child.index % 4;
+                          const row = Math.floor(child.index / 4);
+                          const x = col * 24;
+                          const y = row * 24;
+                          const chosen = decisionIndex === child.index;
+                          const tooltip = child.present
+                            ? [
+                                `index: ${child.index.toString(16)}`,
+                                `ref: ${child.refType ?? 'unknown'}`,
+                                `target: ${child.targetId ? shortIdentifier(child.targetId) : '-'}`,
+                              ].join('\n')
+                            : `index: ${child.index.toString(16)}\nempty`;
+                          return (
+                            <g
+                              key={`${node.id}-child-${child.index}`}
+                              className={[
+                                'branch-cell',
+                                child.present ? 'branch-cell-used' : 'branch-cell-empty',
+                                chosen ? 'branch-cell-current' : '',
+                              ].join(' ')}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (!child.present || !child.targetId) {
+                                  return;
+                                }
+                                const target = nodesById.get(child.targetId);
+                                if (target) {
+                                  props.onSelectNode(target.source);
+                                  return;
+                                }
+                                props.onSelectNodeId?.(child.targetId);
+                              }}
+                            >
+                              <title>{tooltip}</title>
+                              <rect x={x} y={y} width={20} height={20} rx={4} />
+                              <text x={x + 10} y={y + 13} className="branch-cell-text">
+                                {child.index.toString(16)}
+                              </text>
+                              {child.present && <circle cx={x + 16} cy={y + 4} r={2.2} className="branch-cell-dot" />}
+                            </g>
+                          );
+                        })}
+                      </g>
+                    ) : (
+                      <text x={12} y={84} className="node-subtitle">
+                        {node.meta}
+                      </text>
+                    )}
+                    {!showBranchGrid && props.debugMode && (
                       <text x={12} y={100} className="node-debug">
+                        {fitLabel(node.id, 34)}
+                      </text>
+                    )}
+                    {showBranchGrid && props.debugMode && (
+                      <text x={12} y={170} className="node-debug">
                         {fitLabel(node.id, 34)}
                       </text>
                     )}

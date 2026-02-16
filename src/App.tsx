@@ -45,11 +45,10 @@ export default function App() {
   const currentStep = steps.length === 0 ? undefined : steps[Math.min(stepIndex, steps.length - 1)];
   const displayRootRef = currentStep?.rootRef ?? rootRef;
   const displayEntries = currentStep?.dbEntries ?? db.entries();
-  const committedEntries = useMemo(() => db.entries(), [db]);
 
   const graph = useMemo(
-    () => buildTrieGraph(rootRef, InMemoryKvStore.fromEntries(committedEntries)),
-    [committedEntries, rootRef],
+    () => buildTrieGraph(displayRootRef, InMemoryKvStore.fromEntries(displayEntries)),
+    [displayEntries, displayRootRef],
   );
   const rootDisplay = useMemo(() => describeRoot(displayRootRef), [displayRootRef]);
 
@@ -66,6 +65,38 @@ export default function App() {
     }
     return map;
   }, [graph.edges]);
+
+  const graphNodeIds = useMemo(() => new Set(graph.nodes.map((node) => node.id)), [graph.nodes]);
+
+  const effectiveActiveNodeId = useMemo(() => {
+    if (!currentStep || steps.length === 0) {
+      return undefined;
+    }
+
+    const pickCandidate = (step: SimulationStep): string | undefined => {
+      const candidates = [step.activeNodeId, step.activeNode?.hashHex, step.activeNode?.refHex];
+      for (const candidate of candidates) {
+        if (candidate && graphNodeIds.has(candidate)) {
+          return candidate;
+        }
+      }
+      return undefined;
+    };
+
+    const direct = pickCandidate(currentStep);
+    if (direct) {
+      return direct;
+    }
+
+    for (let i = Math.min(stepIndex, steps.length - 1); i >= 0; i -= 1) {
+      const found = pickCandidate(steps[i]);
+      if (found) {
+        return found;
+      }
+    }
+
+    return undefined;
+  }, [currentStep, graphNodeIds, stepIndex, steps]);
 
   const selectedNode = graph.nodes.find((node) => node.id === selectedNodeId);
 
@@ -145,7 +176,8 @@ export default function App() {
     if (!picked) {
       return;
     }
-    const result = simulateLookup(rootRef, db.clone(), picked, useCache);
+    const baseDb = InMemoryKvStore.fromEntries(displayEntries);
+    const result = simulateLookup(displayRootRef, baseDb, picked, useCache);
     setSteps(result.steps);
     setStepIndex(0);
     setPlaying(false);
@@ -164,8 +196,8 @@ export default function App() {
     } catch {
       return;
     }
-    const workingDb = db.clone();
-    const result = simulateUpdate(rootRef, workingDb, picked, nextBalance, useCache);
+    const workingDb = InMemoryKvStore.fromEntries(displayEntries);
+    const result = simulateUpdate(displayRootRef, workingDb, picked, nextBalance, useCache);
     setRootRef(result.rootRef);
     setDb(result.db);
     setSteps(result.steps);
@@ -242,10 +274,12 @@ export default function App() {
       <main className="split-layout">
         <TriePanel
           graph={graph}
-          activeNodeId={currentStep?.activeNodeId}
+          activeNodeId={effectiveActiveNodeId}
           changedNodeIds={currentStep?.changedNodeIds ?? []}
           selectedNodeId={selectedNodeId}
+          currentStep={currentStep}
           onSelectNode={(node) => setSelectedNodeId(node.id)}
+          onSelectNodeId={setSelectedNodeId}
           debugMode={debugMode}
         />
         <DbPanel

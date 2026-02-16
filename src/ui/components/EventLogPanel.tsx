@@ -52,6 +52,7 @@ export function EventLogPanel(props: EventLogPanelProps) {
   const [autoFollow, setAutoFollow] = useState(true);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [scrollTop, setScrollTop] = useState(0);
+  const [listHeight, setListHeight] = useState(LOG_HEIGHT);
   const listRef = useRef<HTMLDivElement>(null);
 
   const formattedSteps = useMemo(() => props.steps.map((step, index) => formatStep(step, index)), [props.steps]);
@@ -76,9 +77,23 @@ export function EventLogPanel(props: EventLogPanelProps) {
   const totalHeight = filteredIndexes.length * ROW_HEIGHT;
 
   const windowStart = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
-  const windowCount = Math.ceil(LOG_HEIGHT / ROW_HEIGHT) + OVERSCAN * 2;
+  const windowCount = Math.ceil(listHeight / ROW_HEIGHT) + OVERSCAN * 2;
   const windowEnd = Math.min(filteredIndexes.length, windowStart + windowCount);
   const visibleIndexes = filteredIndexes.slice(windowStart, windowEnd);
+
+  useEffect(() => {
+    const node = listRef.current;
+    if (!node) {
+      return;
+    }
+    const updateHeight = (): void => {
+      setListHeight(Math.max(ROW_HEIGHT * 2, node.clientHeight));
+    };
+    updateHeight();
+    const observer = new ResizeObserver(() => updateHeight());
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!autoFollow) {

@@ -170,13 +170,15 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
-  min-height: 48vh;
+  min-height: 360px;
+  height: clamp(380px, 52vh, 620px);
 }
 
 .panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(9, 16, 27, 0.72);
@@ -226,7 +228,7 @@ body {
   flex: 1;
   overflow: hidden;
   touch-action: none;
-  min-height: 420px;
+  min-height: 0;
   background: radial-gradient(800px 260px at 50% -20%, rgba(255, 255, 255, 0.08), transparent 60%);
 }
 
@@ -298,11 +300,66 @@ body {
   font-family: 'Consolas', 'Courier New', monospace;
 }
 
+.trie-node {
+  cursor: pointer;
+}
+
+.branch-cell rect {
+  stroke-width: 1.2;
+  transition: stroke 120ms ease, fill 120ms ease, opacity 120ms ease;
+}
+
+.branch-cell-text {
+  text-anchor: middle;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: 'Consolas', 'Courier New', monospace;
+  pointer-events: none;
+}
+
+.branch-cell-dot {
+  fill: #f7f4ff;
+  pointer-events: none;
+}
+
+.branch-cell-used rect {
+  fill: rgba(89, 179, 123, 0.55);
+  stroke: rgba(178, 255, 200, 0.85);
+  opacity: 1;
+}
+
+.branch-cell-used .branch-cell-text {
+  fill: #ebfff0;
+}
+
+.branch-cell-empty rect {
+  fill: rgba(255, 255, 255, 0.07);
+  stroke: rgba(255, 255, 255, 0.14);
+  opacity: 0.5;
+}
+
+.branch-cell-empty .branch-cell-text {
+  fill: #b5c2dd;
+  opacity: 0.72;
+}
+
+.branch-cell-used:hover rect {
+  stroke: rgba(255, 214, 127, 0.9);
+}
+
+.branch-cell-current rect {
+  stroke: rgba(255, 189, 97, 0.95);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 5px rgba(255, 189, 97, 0.35));
+}
+
 .db-search {
   margin: 0.55rem 0.55rem 0.4rem;
 }
 
 .db-table {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 0 0.45rem 0.45rem;
 }
@@ -374,6 +431,10 @@ body {
 }
 
 .event-log-drawer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: clamp(240px, 32vh, 360px);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(12, 22, 34, 0.82);
@@ -424,11 +485,13 @@ body {
 .event-log-body {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
-  min-height: 240px;
-  max-height: 280px;
+  flex: 1;
+  min-height: 0;
 }
 
 .event-log-list {
+  min-height: 0;
+  height: 100%;
   overflow: auto;
   border-right: 1px solid rgba(255, 255, 255, 0.12);
   position: relative;
@@ -533,6 +596,7 @@ body {
 
 .event-log-details-wrap {
   min-width: 0;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -664,15 +728,17 @@ summary {
 @media (max-width: 1100px) {
   .split-layout {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
   }
 
   .event-log-body {
     grid-template-columns: 1fr;
-    max-height: none;
+    min-height: 0;
   }
 
   .event-log-list {
-    min-height: 200px;
+    min-height: 160px;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   }
